@@ -17,3 +17,15 @@ services:
     image: redis
     ports:
       - "6379:6379"
+
+  postresql:
+    volumes:
+      - ./test_task:/test_task/pg
+
+    image: postgres
+    environment:
+      - POSTGRES_PASSWORD='postgres'
+      - POSTGRES_USER='postgres'
+      - POSTGRES_DB='stage'
+    ports:
+      - 8010:5432

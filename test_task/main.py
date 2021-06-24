@@ -10,20 +10,20 @@ app = FastAPI()
 
 
 
-@app.on_event("startup")
-async def startup():
-    # когда приложение запускается устанавливаем соединение с БД
-    redis = await aioredis.create_redis_pool('redis://localhost:6379')
-    await redis.set('my-key', 'value')
-    value = await redis.get('my-key', encoding='utf-8')
-
-
-@app.on_event("shutdown")
-async def shutdown():
-    # когда приложение останавливается разрываем соединение с БД
-    redis = await aioredis.create_redis_pool('redis://localhost:6379')
-    redis.close()
-    await redis.wait_closed()
+# @app.on_event("startup")
+# async def startup():
+#     # когда приложение запускается устанавливаем соединение с БД
+#     redis = await aioredis.create_redis_pool('redis://localhost:6379')
+#     await redis.set('my-key', 'value')
+#     value = await redis.get('my-key', encoding='utf-8')
+#
+#
+# @app.on_event("shutdown")
+# async def shutdown():
+#     # когда приложение останавливается разрываем соединение с БД
+#     redis = await aioredis.create_redis_pool('redis://localhost:6379')
+#     redis.close()
+#     await redis.wait_closed()
 
 
 @app.get('/')
@@ -33,6 +33,11 @@ def home():
 
 @app.post('/anagram/')
 async def anagram(item: Anagram):
+    '''
+    https://webdevblog.ru/redis-dlya-nachinajushhij/ to do review cod
+    :param item:
+    :return:
+    '''
     new_str_1 = [x for x in item.str_1 if x.isalpha() or x.isdigit()]
     new_str_2 = [x for x in item.str_2 if x.isalpha() or x.isdigit()]
 
