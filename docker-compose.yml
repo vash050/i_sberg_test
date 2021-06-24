@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  web:
+    build: ./test_task
+    container_name: 'test-task'
+    command: sh -c "uvicorn main:app"
+    network_mode: host
+    volumes:
+      - ./test_task:/test_task
+    # Открываем порт 8000 внутри и снаружи
+    ports:
+      - 8000:8000
+
+
+  redis:
+    image: redis
