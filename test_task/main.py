@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Response, status
 
 import asyncio
 import aioredis
@@ -53,15 +53,23 @@ async def anagram(item: Anagram):
 @app.get('/drop-table-device')
 async def delete_table_device():
     conn = await asyncpg.connect('postgresql://postgres:postgres@localhost:8010/stage')
-    await conn.execute("DROP TABLE devices")
+    await conn.execute("DROP TABLE device")
     await conn.close()
     return {'status': 'OK'}
 
 
-@app.get('/create-table-devices/')
+@app.get('/drop-table-endpoint')
+async def delete_table_device():
+    conn = await asyncpg.connect('postgresql://postgres:postgres@localhost:8010/stage')
+    await conn.execute("DROP TABLE endpoint")
+    await conn.close()
+    return {'status': 'OK'}
+
+
+@app.get('/create-table-device/')
 async def create_table_devices():
     conn = await asyncpg.connect('postgresql://postgres:postgres@localhost:8010/stage')
-    await conn.execute("CREATE TABLE devices(id serial PRIMARY KEY, dev_id varchar , dev_type varchar)")
+    await conn.execute("CREATE TABLE device(id serial PRIMARY KEY, dev_id varchar , dev_type varchar)")
     await conn.close()
     return {'status': 'OK'}
 
@@ -69,7 +77,8 @@ async def create_table_devices():
 @app.get('/create-table-endpoint/')
 async def create_table_devices():
     conn = await asyncpg.connect('postgresql://postgres:postgres@localhost:8010/stage')
-    await conn.execute("CREATE TABLE endpoint(id serial PRIMARY KEY, device_id INT, FOREIGN KEY (device_id) REFERENCES devices (id) ON DELETE CASCADE)")
+    await conn.execute(
+        "CREATE TABLE endpoint(id serial PRIMARY KEY, device_id INT, FOREIGN KEY (device_id) REFERENCES device (id) ON DELETE CASCADE)")
     await conn.close()
     return {'status': 'OK'}
 
@@ -79,11 +88,11 @@ async def device_into():
     count_el = 10
     conn = await asyncpg.connect('postgresql://postgres:postgres@localhost:8010/stage')
     devices = get_devices(count_el)
-    for device in devices:
+    for el in devices:
         await conn.execute('''
-                            INSERT INTO devices(dev_id, dev_type) VALUES($1, $2)
+                            INSERT INTO device(dev_id, dev_type) VALUES($1, $2)
                             ''',
-                           device['dev_id'], device['dev_type'])
+                           el['dev_id'], el['dev_type'])
     await conn.close()
     return {'status': '201'}
 
@@ -91,14 +100,39 @@ async def device_into():
 @app.get('/devices-from-db/')
 async def get_devices_from_db():
     conn = await asyncpg.connect('postgresql://postgres:postgres@localhost:8010/stage')
-    rows = await conn.fetch('SELECT * FROM devices')
+    rows = await conn.fetch('SELECT * FROM device')
     await conn.close()
     return rows
 
 
-@app.get('/devices-from-db-5-random/')
-async def get_devices_from_db():
+@app.get('/devices-from-db-5-random/, status_code=200')
+async def get_devices_from_db(response: Response):
     conn = await asyncpg.connect('postgresql://postgres:postgres@localhost:8010/stage')
-    rows = await conn.fetch('SELECT * FROM devices ORDER BY RANDOM() LIMIT 5')
+    device_id = await conn.fetch('SELECT id FROM device ORDER BY RANDOM() LIMIT 5')
+    for el in device_id:
+        await conn.execute('''
+                            INSERT INTO endpoint(device_id) VALUES($1)
+                            ''',
+                           el['id'])
+    endpoint = await conn.fetch('SELECT * FROM endpoint')
     await conn.close()
-    return rows
+    response.status_code = status.HTTP_201_CREATED
+    return endpoint
+
+
+@app.get('/get_all_endpoint/')
+async def get_all_endpoint():
+    conn = await asyncpg.connect('postgresql://postgres:postgres@localhost:8010/stage')
+    all_endpoint = await conn.fetch('SELECT * FROM endpoint')
+    await conn.close()
+    return all_endpoint
+
+
+@app.get('/get_all_device_without_endpoint/')
+async def get_all_device_without_endpoint():
+    conn = await asyncpg.connect('postgresql://postgres:postgres@localhost:8010/stage')
+    # all_devices = await conn.fetch('SELECT * FROM device JOIN endpoint ON device.id = endpoint.device_id ORDER BY dev_type')
+    all_devices = await conn.fetch(
+        'SELECT * FROM device WHERE id NOT IN (SELECT device_id FROM endpoint) ORDER BY dev_type')
+    await conn.close()
+    return all_devices
