@@ -1,0 +1,7 @@
+Добрый день. Спасибо за интересное задание.
+Cледующие функции были добавлены для удобства тестирования:
+    - delete_table_endpoint()
+    - delete_table_device()
+    - get_all_endpoint()
+    - get_all_devices_from_db()
+Функции вспомогательные вынесены в модуль function.py

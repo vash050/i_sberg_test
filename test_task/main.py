@@ -37,11 +37,12 @@ async def create_table_device():
     async with asyncpg.create_pool(dsn='postgresql://postgres:postgres@localhost:8010/stage',
                                    command_timeout=60) as pool:
         async with pool.acquire() as conn:
-            await conn.execute("CREATE TABLE device(id serial PRIMARY KEY, dev_id varchar(200) NOT NULL, dev_type varchar(120) NOT NULL)")
+            await conn.execute(
+                "CREATE TABLE device(id serial PRIMARY KEY, dev_id varchar(200) NOT NULL, dev_type varchar(120) NOT NULL)")
             await conn.execute(
                 "CREATE TABLE endpoint(id serial PRIMARY KEY, device_id INT, FOREIGN KEY (device_id) REFERENCES device (id) ON DELETE CASCADE)")
             await conn.close()
-            return {'status': 'OK'}
+    return {'status': 'OK'}
 
 
 @app.get('/devices-into-db/', status_code=200)
@@ -63,8 +64,8 @@ async def device_into(response: Response):
                                     ''',
                                    el['id'])
             await conn.close()
-            response.status_code = status.HTTP_201_CREATED
-            return {'status': 'OK'}
+    response.status_code = status.HTTP_201_CREATED
+    return {'status': 'OK'}
 
 
 @app.get('/get_all_device_without_endpoint/')
@@ -75,7 +76,7 @@ async def get_all_device_without_endpoint():
             all_devices = await conn.fetch(
                 'SELECT dev_type, count(dev_type) FROM device WHERE id NOT IN (SELECT device_id FROM endpoint) GROUP BY dev_type')
             await conn.close()
-            return all_devices
+    return all_devices
 
 
 @app.get('/devices-from-db/')
@@ -89,7 +90,7 @@ async def get_all_devices_from_db():
         async with pool.acquire() as conn:
             rows = await conn.fetch('SELECT * FROM device')
             await conn.close()
-            return rows
+    return rows
 
 
 @app.get('/get_all_endpoint/')
@@ -103,7 +104,7 @@ async def get_all_endpoint():
         async with pool.acquire() as conn:
             all_endpoint = await conn.fetch('SELECT * FROM endpoint')
             await conn.close()
-            return all_endpoint
+    return all_endpoint
 
 
 @app.delete('/drop-table-device')
@@ -113,7 +114,7 @@ async def delete_table_device():
         async with pool.acquire() as conn:
             await conn.execute("DROP TABLE device")
             await conn.close()
-            return {'status': 'OK'}
+    return {'status': 'OK'}
 
 
 @app.delete('/drop-table-endpoint')
@@ -123,4 +124,4 @@ async def delete_table_endpoint():
         async with pool.acquire() as conn:
             await conn.execute("DROP TABLE endpoint")
             await conn.close()
-            return {'status': 'OK'}
+    return {'status': 'OK'}
