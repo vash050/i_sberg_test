@@ -2,28 +2,12 @@ from fastapi import FastAPI
 
 import asyncio
 import aioredis
+import asyncpg
 
+from functions import get_devices
 from schemas import Anagram
 
 app = FastAPI()
-
-
-
-
-# @app.on_event("startup")
-# async def startup():
-#     # когда приложение запускается устанавливаем соединение с БД
-#     redis = await aioredis.create_redis_pool('redis://localhost:6379')
-#     await redis.set('my-key', 'value')
-#     value = await redis.get('my-key', encoding='utf-8')
-#
-#
-# @app.on_event("shutdown")
-# async def shutdown():
-#     # когда приложение останавливается разрываем соединение с БД
-#     redis = await aioredis.create_redis_pool('redis://localhost:6379')
-#     redis.close()
-#     await redis.wait_closed()
 
 
 @app.get('/')
@@ -64,3 +48,57 @@ async def anagram(item: Anagram):
     await redis.wait_closed()
 
     return {'key': flag, 'count': count}
+
+
+@app.get('/drop-table-device')
+async def delete_table_device():
+    conn = await asyncpg.connect('postgresql://postgres:postgres@localhost:8010/stage')
+    await conn.execute("DROP TABLE devices")
+    await conn.close()
+    return {'status': 'OK'}
+
+
+@app.get('/create-table-devices/')
+async def create_table_devices():
+    conn = await asyncpg.connect('postgresql://postgres:postgres@localhost:8010/stage')
+    await conn.execute("CREATE TABLE devices(id serial PRIMARY KEY, dev_id varchar , dev_type varchar)")
+    await conn.close()
+    return {'status': 'OK'}
+
+
+@app.get('/create-table-endpoint/')
+async def create_table_devices():
+    conn = await asyncpg.connect('postgresql://postgres:postgres@localhost:8010/stage')
+    await conn.execute("CREATE TABLE endpoint(id serial PRIMARY KEY, device_id INT, FOREIGN KEY (device_id) REFERENCES devices (id) ON DELETE CASCADE)")
+    await conn.close()
+    return {'status': 'OK'}
+
+
+@app.get('/devices-into-db/')
+async def device_into():
+    count_el = 10
+    conn = await asyncpg.connect('postgresql://postgres:postgres@localhost:8010/stage')
+    devices = get_devices(count_el)
+    for device in devices:
+        await conn.execute('''
+                            INSERT INTO devices(dev_id, dev_type) VALUES($1, $2)
+                            ''',
+                           device['dev_id'], device['dev_type'])
+    await conn.close()
+    return {'status': '201'}
+
+
+@app.get('/devices-from-db/')
+async def get_devices_from_db():
+    conn = await asyncpg.connect('postgresql://postgres:postgres@localhost:8010/stage')
+    rows = await conn.fetch('SELECT * FROM devices')
+    await conn.close()
+    return rows
+
+
+@app.get('/devices-from-db-5-random/')
+async def get_devices_from_db():
+    conn = await asyncpg.connect('postgresql://postgres:postgres@localhost:8010/stage')
+    rows = await conn.fetch('SELECT * FROM devices ORDER BY RANDOM() LIMIT 5')
+    await conn.close()
+    return rows
